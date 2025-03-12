@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Hyperledger Fabric
+/fabric-samples
+/fabric/network/crypto-config
+/fabric/network/organizations

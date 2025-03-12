@@ -1,4 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Blockchain Evidence Tracker
+
+A decentralized application for securely tracking and managing digital evidence using Hyperledger Fabric.
+
+## Prerequisites
+
+- Node.js v18.x
+- Docker and Docker Compose
+- Python 3.x
+- Hyperledger Fabric v2.5.x
+
+## Setup
+
+1. Install dependencies:
+```bash
+# Install Node.js dependencies
+npm install
+
+# Install Python dependencies
+cd backend
+pip install -r requirements.txt
+```
+
+2. Set up Hyperledger Fabric network:
+```bash
+cd backend/fabric/scripts
+chmod +x setup.sh
+./setup.sh
+```
+
+3. Start the application:
+```bash
+# Start the frontend
+npm run dev
+
+# Start the backend (in a new terminal)
+cd backend
+python main.py
+```
+
+## Project Structure
+
+```
+genai-blockchain-evidence-tracker/
+├── backend/
+│   ├── fabric/
+│   │   ├── chaincode/     # Fabric chaincode
+│   │   ├── network/       # Network configuration
+│   │   └── scripts/       # Setup and utility scripts
+│   ├── main.py           # Backend API server
+│   └── requirements.txt  # Python dependencies
+├── src/                  # Frontend React components
+└── package.json
+```
 
 ## Getting Started
 
