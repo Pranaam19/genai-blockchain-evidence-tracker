@@ -15,7 +15,7 @@ export default function EvidencePage() {
         
         console.log('Fetching evidence from API...');
         
-        // Use a proxy approach to avoid CORS issues
+        // Use a proxy approach to avoid CORS issue
         // This will make the request through the Next.js server
         const response = await fetch('/api/evidence', {
           method: 'GET',
