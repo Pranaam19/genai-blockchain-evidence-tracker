@@ -11,30 +11,81 @@ A decentralized application for securely tracking and managing digital evidence 
 
 ## Setup
 
-1. Install dependencies:
+### 1. Clone the repository
+```bash
+git clone https://github.com/Pranaam19/genai-blockchain-evidence-tracker.git
+cd genai-blockchain-evidence-tracker
+```
+
+### 2. Install dependencies
+
 ```bash
 # Install Node.js dependencies
 npm install
 
-# Install Python dependencies
+# Set up Python virtual environment and install dependencies
 cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+cd ..
 ```
 
-2. Set up Hyperledger Fabric network:
+### 3. Set up Hyperledger Fabric network
+
+Make sure Docker is running before proceeding with this step.
+
 ```bash
+# Ensure the network directory exists
+mkdir -p backend/fabric/network
+
+# Make the start-network script executable
+chmod +x backend/fabric/scripts/start-network.sh
+
+# Start the Hyperledger Fabric network
 cd backend/fabric/scripts
-chmod +x setup.sh
-./setup.sh
+./start-network.sh
+cd ../../..
 ```
 
-3. Start the application:
+**Note:** If you encounter issues with the setup script, you might need to modify the `start-network.sh` script to use absolute paths. The script should look like this:
+
 ```bash
-# Start the frontend
+#!/bin/bash
+
+# Get the absolute path to the chaincode directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHAINCODE_DIR="${SCRIPT_DIR}/../chaincode/evidence"
+NETWORK_DIR="${SCRIPT_DIR}/../network"
+
+# Ensure the network directory exists
+mkdir -p "${NETWORK_DIR}"
+
+# Navigate to fabric-samples directory
+cd fabric-samples/test-network
+
+# Bring down any previous network
+./network.sh down
+
+# Start network with CA and create channel
+./network.sh up createChannel -c mychannel -ca
+
+# Deploy the chaincode
+./network.sh deployCC -ccn evidence -ccp "${CHAINCODE_DIR}" -ccl javascript
+
+# Copy the connection profile
+cp organizations/peerOrganizations/org1.example.com/connection-org1.yaml "${NETWORK_DIR}/"
+```
+
+### 4. Start the application
+
+```bash
+# Start the frontend (in one terminal)
 npm run dev
 
-# Start the backend (in a new terminal)
+# Start the backend (in another terminal)
 cd backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 python main.py
 ```
 
