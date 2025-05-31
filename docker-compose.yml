@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8001
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    volumes:
+      - frontend-node-modules:/app/node_modules
+      - ./src:/app/src
+
+  # Backend service
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - FABRIC_NETWORK_PATH=/app/fabric/network
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - backend-data:/app/uploads
+      - backend-ipfs:/app/simulated_ipfs
+      - backend-keys:/app/encryption_keys
+    depends_on:
+      - ca.org1.example.com
+      - ca.org2.example.com
+      - orderer.example.com
+      - peer0.org1.example.com
+      - peer0.org2.example.com
+    networks:
+      - app-network
+      - fabric-network
+
+  # Hyperledger Fabric services
+  ca.org1.example.com:
+    image: hyperledger/fabric-ca:2.5
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org1
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:17054
+    ports:
+      - "7054:7054"
+      - "17054:17054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ca-org1-data:/etc/hyperledger/fabric-ca-server
+    networks:
+      - fabric-network
+
+  ca.org2.example.com:
+    image: hyperledger/fabric-ca:2.5
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-org2
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=8054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:18054
+    ports:
+      - "8054:8054"
+      - "18054:18054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ca-org2-data:/etc/hyperledger/fabric-ca-server
+    networks:
+      - fabric-network
+
+  orderer.example.com:
+    image: hyperledger/fabric-orderer:2.5
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_OPERATIONS_LISTENADDRESS=0.0.0.0:9443
+      - ORDERER_METRICS_PROVIDER=prometheus
+    ports:
+      - "7050:7050"
+      - "9443:9443"
+    volumes:
+      - orderer-data:/var/hyperledger/production/orderer
+    networks:
+      - fabric-network
+
+  peer0.org1.example.com:
+    image: hyperledger/fabric-peer:2.5
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric-network
+      - CORE_LOGGING_LEVEL=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.org1.example.com
+      - CORE_PEER_ADDRESS=peer0.org1.example.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org1.example.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9444
+      - CORE_METRICS_PROVIDER=prometheus
+    ports:
+      - "7051:7051"
+      - "9444:9444"
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - peer0-org1-data:/var/hyperledger/production
+    networks:
+      - fabric-network
+
+  peer0.org2.example.com:
+    image: hyperledger/fabric-peer:2.5
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric-network
+      - CORE_LOGGING_LEVEL=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.org2.example.com
+      - CORE_PEER_ADDRESS=peer0.org2.example.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org2.example.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.example.com:9051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9445
+      - CORE_METRICS_PROVIDER=prometheus
+    ports:
+      - "9051:9051"
+      - "9445:9445"
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - peer0-org2-data:/var/hyperledger/production
+    networks:
+      - fabric-network
+
+  # Setup service to initialize the Hyperledger Fabric network
+  setup:
+    image: hyperledger/fabric-tools:2.5
+    volumes:
+      - ./backend/fabric/chaincode:/chaincode
+      - ./backend/fabric/network:/network
+      - ./backend/fabric/scripts:/scripts
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+    command: >
+      sh -c "
+        sleep 10;
+        cd /scripts;
+        chmod +x setup-docker.sh;
+        ./setup-docker.sh;
+      "
+    depends_on:
+      - ca.org1.example.com
+      - ca.org2.example.com
+      - orderer.example.com
+      - peer0.org1.example.com
+      - peer0.org2.example.com
+    networks:
+      - fabric-network
+
+networks:
+  app-network:
+    driver: bridge
+  fabric-network:
+    driver: bridge
+
+volumes:
+  frontend-node-modules:
+  backend-data:
+  backend-ipfs:
+  backend-keys:
+  ca-org1-data:
+  ca-org2-data:
+  orderer-data:
+  peer0-org1-data:
+  peer0-org2-data:
